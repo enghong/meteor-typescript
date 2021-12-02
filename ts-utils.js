@@ -182,7 +182,7 @@ export class TsDiagnostics {
 
   hasUnresolvedModules() {
     const index = _.findIndex(this.semanticErrors, (msg) => 
-      msg.code === ts.Diagnostics.Cannot_find_module_0.code
+      msg.code === ts.Diagnostics.Cannot_find_module_0_or_its_corresponding_type_declarations.code
     );
     return index !== -1;
   }
