@@ -42,6 +42,9 @@ function Cache(length) {
       return sizeof(obj);
     }
   });
+
+  this._pendingWrites = 0;
+  this._onDrain = [];
 }
 
 exports.Cache = Cache;
@@ -119,17 +122,32 @@ Cp._readCache = function (cacheKey) {
   return compileResult;
 };
 
+Cp._writeFinished = function () {
+  this._pendingWrites--;
+
+  if (this._pendingWrites === 0) {
+    this._onDrain.forEach(function (fn) {
+      return fn();
+    });
+    this._onDrain.length = 0;
+  }
+};
+
 // We want to write the file atomically.
 // But we also don't want to block processing on the file write.
 Cp._writeFileAsync = function (filename, content) {
+  var _this = this;
+
+  this._pendingWrites++;
   var tempFilename = filename + ".tmp." + random.uuid4();
   fs.writeFile(tempFilename, content, function (err) {
     if (err) {
       logger.debug("file can't be save: %s", err.message);
+      _this._writeFinished();
       return;
     }
     fs.rename(tempFilename, filename, function (err) {
-      // ignore this error too.
+      _this._writeFinished();
     });
   });
 };
@@ -140,6 +158,14 @@ Cp._writeCacheAsync = function (cacheKey, compileResult) {
   var cacheFilename = this._cacheFilename(cacheKey);
   var cacheContents = JSON.stringify(compileResult);
   this._writeFileAsync(cacheFilename, cacheContents);
+};
+
+Cp.waitForPendingWrites = function (cb) {
+  if (this._pendingWrites === 0) {
+    cb();
+  } else {
+    this._onDrain.push(cb);
+  }
 };
 
 // Cache to save and retrieve compiler results.

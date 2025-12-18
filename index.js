@@ -31,6 +31,16 @@ export function setCacheDir(cacheDir) {
   fileHashCache = new FileHashCache(cacheDir);
 }
 
+function waitForPendingWrites(cache) {
+  logger.debug("wait for pending writes");
+  return new Promise(resolve => {
+    cache.waitForPendingWrites(() => {
+      logger.debug("no more pending writes");
+      resolve();
+    })
+  });
+}
+
 function getConvertedDefault(arch) {
   return convertCompilerOptionsOrThrow(
     getDefaultCompilerOptions(arch));
@@ -207,6 +217,13 @@ export class TSBuild {
     pget.end();
 
     return result;
+  }
+
+  waitForPendingWrites() {
+    return Promise.all([
+      waitForPendingWrites(compileCache),
+      waitForPendingWrites(fileHashCache),
+    ]);
   }
 }
 

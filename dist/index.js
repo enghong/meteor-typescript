@@ -67,6 +67,16 @@ function setCacheDir(cacheDir) {
   fileHashCache = new _cache.FileHashCache(cacheDir);
 }
 
+function _waitForPendingWrites(cache) {
+  _logger2.default.debug("wait for pending writes");
+  return new Promise(function (resolve) {
+    cache.waitForPendingWrites(function () {
+      _logger2.default.debug("no more pending writes");
+      resolve();
+    });
+  });
+}
+
 function getConvertedDefault(arch) {
   return (0, _options.convertCompilerOptionsOrThrow)((0, _options.getDefaultCompilerOptions)(arch));
 }
@@ -250,6 +260,11 @@ var TSBuild = exports.TSBuild = function () {
       pget.end();
 
       return result;
+    }
+  }, {
+    key: "waitForPendingWrites",
+    value: function waitForPendingWrites() {
+      return Promise.all([_waitForPendingWrites(compileCache), _waitForPendingWrites(fileHashCache)]);
     }
   }]);
 
